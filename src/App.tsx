@@ -4,6 +4,7 @@ import {
   Hexagon, Link2, WifiOff, Zap, Bot, Wifi, Target 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 export default function App() {
   const [metrics, setMetrics] = useState({
@@ -42,6 +43,11 @@ export default function App() {
     const fetchData = async () => {
       try {
         const res = await fetch('/api/metrics');
+        const stratRes = await fetch('/api/strategies');
+        if (stratRes.ok) {
+          const stratData = await stratRes.json();
+          setStrategies(stratData);
+        }
         if (res.ok) {
           const data = await res.json();
           setSystemHealth('ACTIVE');
@@ -466,7 +472,7 @@ export default function App() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...strategies, { id: '4', name: 'AR09 VWAP Confirm', signals: 12, performance: '+1.4%' }].map(s => (
+                {(strategies.length > 0 ? strategies : [...strategies, { id: '4', name: 'AR09 VWAP Confirm', signals: 12, performance: '+1.4%' }]).map(s => (
                   <div key={s.id} className="bg-white dark:bg-[#181a20] border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm dark:shadow-xl dark:shadow-black/50">
                     <div className="flex justify-between items-start mb-4">
                       <div>
@@ -486,6 +492,18 @@ export default function App() {
                         <span className="block text-[10px] font-mono text-slate-500 uppercase mb-1">P&L (24h)</span>
                         <span className={`text-lg font-bold ${s.performance.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>{s.performance}</span>
                       </div>
+                    </div>
+                    <div className="h-24 mb-4 mt-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={(s.history || [10, 12, 11, 14, 13, 16, 18, 17, 20]).map((v: number, i: number) => ({ time: new Date(Date.now() - (10 - i) * 3600000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), value: v }))}>
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#181a20', borderColor: '#333', borderRadius: '8px' }}
+                            itemStyle={{ color: '#FCD535', fontWeight: 'bold' }}
+                            labelStyle={{ color: '#aaa', fontSize: '10px', marginBottom: '4px' }}
+                          />
+                          <Line type="monotone" dataKey="value" stroke={s.performance?.startsWith('+') ? '#22c55e' : '#ef4444'} strokeWidth={2} dot={{ r: 3, fill: '#181a20', strokeWidth: 2 }} activeDot={{ r: 5, fill: '#FCD535', stroke: '#181a20' }} />
+                        </LineChart>
+                      </ResponsiveContainer>
                     </div>
                     <div className="flex gap-2">
                        <button className="flex-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10">Configure</button>
